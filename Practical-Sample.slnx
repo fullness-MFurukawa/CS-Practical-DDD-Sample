@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Apps/">
+    <Project Path="Apps/Ddd.Api/Ddd.Api.csproj" />
+    <Project Path="Apps/Ddd.Application/Ddd.Application.csproj" />
+    <Project Path="Apps/Ddd.Domain/Ddd.Domain.csproj" />
+    <Project Path="Apps/Ddd.Infrastructure/Ddd.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Ddd.Api.Tests/Ddd.Api.Tests.csproj" />
+    <Project Path="Tests/Ddd.Application.Tests/Ddd.Application.Tests.csproj" />
+    <Project Path="Tests/Ddd.Domain.Tests/Ddd.Domain.Tests.csproj" />
+    <Project Path="Tests/Ddd.Infrastructure.Tests/Ddd.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
