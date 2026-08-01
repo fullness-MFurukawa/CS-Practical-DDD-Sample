@@ -37,12 +37,30 @@ public class AppDbContext : DbContext
     public DbSet<ProductStockEntity> ProductStocks => Set<ProductStockEntity>();
 
     /// <summary>
-    /// モデルの追加構成。属性で表現しない「一意制約」と「外部キー(結合)」を定義する。
+    /// モデルの追加構成。属性で表現しない「uuid列の変換」「一意制約」「外部キー(結合)」を定義する。
     /// </summary>
     /// <param name="modelBuilder">モデルビルダー。</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // --- uuid 列は既存スキーマに合わせて varchar(36) にマッピングする ---
+        // ドメインは Guid を保持するが、DB列は Java版どおり canonical な UUID 文字列(varchar(36))。
+        // Guid.ToString() は小文字・ハイフン付き36文字なので、既存データの形式と一致する。
+        modelBuilder.Entity<ProductEntity>()
+            .Property(p => p.ProductUuid)
+            .HasConversion<string>()
+            .HasColumnType("varchar(36)");
+
+        modelBuilder.Entity<ProductCategoryEntity>()
+            .Property(c => c.CategoryUuid)
+            .HasConversion<string>()
+            .HasColumnType("varchar(36)");
+
+        modelBuilder.Entity<ProductStockEntity>()
+            .Property(s => s.StockUuid)
+            .HasConversion<string>()
+            .HasColumnType("varchar(36)");
 
         // --- 一意インデックス: ドメイン識別子(UUID列)は一意であること ---
         modelBuilder.Entity<ProductEntity>()

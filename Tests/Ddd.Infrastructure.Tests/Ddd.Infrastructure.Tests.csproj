@@ -7,7 +7,16 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- データベース接続文字列を appsettings.Test.jsonから取得する -->
   <ItemGroup>
+    <None Update="appsettings.Test.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
     <PackageReference Include="MSTest" Version="4.0.1" />
   </ItemGroup>
 
@@ -17,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Apps\Ddd.Infrastructure\Ddd.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Apps\Ddd.Domain\Ddd.Domain.csproj" />
   </ItemGroup>
 
 </Project>

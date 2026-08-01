@@ -1,14 +1,17 @@
 {
   "files.exclude": {
     "**/bin": true,
-    "**/obj": true
+    "**/obj": true,
+    "**/TestResults": true
   },
   "search.exclude": {
     "**/bin": true,
-    "**/obj": true
+    "**/obj": true,
+    "**/TestResults": true
   },
   "files.watcherExclude": {
     "**/bin/**": true,
-    "**/obj/**": true
+    "**/obj/**": true,
+    "**/TestResults": true
   }
 }
