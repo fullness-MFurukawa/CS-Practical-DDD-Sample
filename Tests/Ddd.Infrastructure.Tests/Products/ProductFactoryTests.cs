@@ -4,6 +4,7 @@ using Ddd.Domain.Models.Categories;
 using Ddd.Domain.Models.Products;
 using Ddd.Domain.Models.Stocks;
 using Ddd.Infrastructure.Entities;
+using Ddd.Infrastructure.Tests.Persistence;
 
 namespace Ddd.Infrastructure.Tests.Products;
 

@@ -7,21 +7,21 @@ namespace Ddd.Infrastructure.Tests.Persistence;
 /// <see cref="Ddd.Infrastructure.Persistence.AppDbContext"/> の結合テスト。
 /// </summary>
 /// <remarks>
-/// 実 DB への接続可否と、モデル(テーブル・列・uuid型・採番PK)がスキーマと整合していることを確認する。
-/// トランザクションで囲まれ、書き込みは <see cref="DatabaseTestBase"/> によりロールバックされる。
+/// 実 DB への接続可否と、モデル(テーブル・列・uuid列・採番PK)がスキーマと整合していることを確認する。
+/// 書き込みは <see cref="DatabaseTestBase"/> のトランザクションでロールバックされる。DbContext は DI から解決される。
 /// </remarks>
 [TestClass]
 [TestCategory("Infrastructure.Persistence")]
 public sealed class AppDbContextTests : DatabaseTestBase
 {
-    [TestMethod]
-    public async Task データベースに接続できる()
+    [TestMethod(DisplayName = "データベースに接続できる")]
+    public async Task CanConnectToDatabase()
     {
         Assert.IsTrue(await DbContext.Database.CanConnectAsync());
     }
 
-    [TestMethod]
-    public async Task 三つのテーブルを問合せできる_モデルとスキーマが整合()
+    [TestMethod(DisplayName = "三つのテーブルを問合せできる_モデルとスキーマが整合")]
+    public async Task CanQueryAllThreeTables()
     {
         // 例外なく問い合わせできれば、テーブル名・列マッピングがスキーマと一致している
         _ = await DbContext.ProductCategories.AsNoTracking().Take(1).ToListAsync();
@@ -29,8 +29,8 @@ public sealed class AppDbContextTests : DatabaseTestBase
         _ = await DbContext.ProductStocks.AsNoTracking().Take(1).ToListAsync();
     }
 
-    [TestMethod]
-    public async Task カテゴリをINSERTして読み戻せる_uuid列と採番PKのマッピング()
+    [TestMethod(DisplayName = "カテゴリをINSERTして読み戻せる_uuid列と採番PKのマッピング")]
+    public async Task InsertAndReloadCategory()
     {
         var uuid = Guid.NewGuid();
         var entity = new ProductCategoryEntity { CategoryUuid = uuid, Name = "検証用カテゴリ" };
@@ -47,5 +47,6 @@ public sealed class AppDbContextTests : DatabaseTestBase
         Assert.IsNotNull(reloaded);
         Assert.AreEqual("検証用カテゴリ", reloaded!.Name);
         Assert.AreEqual(uuid, reloaded.CategoryUuid);
+        // 書き込みは基底クラス(DatabaseTestBase)のトランザクションでロールバックされる
     }
 }

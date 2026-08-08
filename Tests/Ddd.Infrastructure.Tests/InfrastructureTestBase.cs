@@ -2,22 +2,16 @@ using Ddd.Infrastructure.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ddd.Infrastructure.Tests;
+namespace Ddd.Infrastructure.Tests.Persistence;
 
 /// <summary>
 /// インフラストラクチャ層テストの共通基盤。<see cref="DependencyInjection.AddInfrastructure"/> で
 /// 構成した DI コンテナからテストターゲットを解決する。
 /// </summary>
 /// <remarks>
-/// <para>
 /// ルートプロバイダは全テストで一度だけ構築し、各テストではスコープを作成して
 /// <see cref="GetRequiredService{T}"/> で対象(Adapter / Factory / Repository)を解決する。
 /// これにより、対象の振る舞いだけでなく <c>AddInfrastructure</c> の DI 登録の正しさも検証できる。
-/// </para>
-/// <para>
-/// 接続文字列は <c>appsettings.Test.json</c> の <c>Postgres</c> を用いる。DB を参照しないテスト
-/// (Adapter / Factory)は接続を行わないため、DB が停止していても実行できる。
-/// </para>
 /// </remarks>
 public abstract class InfrastructureTestBase
 {
@@ -38,7 +32,7 @@ public abstract class InfrastructureTestBase
         _scope = RootProvider.CreateScope();
     }
 
-    /// <summary>各テスト終了時: DI スコープを破棄する(スコープ内の DbContext 等も破棄される)。</summary>
+    /// <summary>各テスト終了時: DI スコープを破棄する。</summary>
     [TestCleanup]
     public void DisposeScope()
     {
@@ -58,7 +52,6 @@ public abstract class InfrastructureTestBase
         var services = new ServiceCollection();
         services.AddInfrastructure(connectionString);
 
-        // スコープ検証を有効化し、Scoped サービスをスコープ外で解決していないことを保証する
         return services.BuildServiceProvider(validateScopes: true);
     }
 }

@@ -2,6 +2,7 @@ using Ddd.Domain.Adapters;
 using Ddd.Domain.Exceptions;
 using Ddd.Domain.Models.Stocks;
 using Ddd.Infrastructure.Entities;
+using Ddd.Infrastructure.Tests.Persistence;
 
 namespace Ddd.Infrastructure.Tests.Products;
 
