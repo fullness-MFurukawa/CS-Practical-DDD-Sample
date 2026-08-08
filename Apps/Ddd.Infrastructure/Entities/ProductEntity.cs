@@ -19,25 +19,50 @@ namespace Ddd.Infrastructure.Entities;
 [Table("product")]
 public class ProductEntity
 {
-    /// <summary>内部PK(自動採番)。DB上の識別子。</summary>
+    /// <summary>
+    /// 内部PK(自動採番)。
+    /// DB上の識別子。
+    /// </summary>
     [Key]
     [Column("id")]
     public int Id { get; set; }
 
-    /// <summary>ドメイン識別子(商品UUID)。コード上の識別に用いる。</summary>
+    /// <summary>
+    /// ドメイン識別子(商品UUID)。
+    /// コード上の識別に用いる。
+    /// </summary>
     [Column("product_uuid")]
     public Guid ProductUuid { get; set; }
 
-    /// <summary>商品名(最大30文字)。</summary>
+    /// <summary>
+    /// 商品名(最大30文字)。
+    /// </summary>
     [Column("name")]
     [MaxLength(30)]
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>単価。</summary>
+    /// <summary>
+    /// 単価。
+    /// </summary>
     [Column("price")]
     public int Price { get; set; }
 
-    /// <summary>所属するカテゴリの内部PK(外部キー <c>category_id</c>)。</summary>
+    /// <summary>
+    /// 所属するカテゴリの内部PK(外部キー <c>category_id</c>)。
+    /// </summary>
     [Column("category_id")]
     public int CategoryId { get; set; }
+
+    /// <summary>
+    /// 所属するカテゴリ(参照ナビゲーション)。
+    /// 別集約のマスタ。
+    /// 読み取りは Includeで行う。
+    /// </summary>
+    public ProductCategoryEntity? Category { get; set; }
+
+    /// <summary>
+    ///  保有する在庫(所有ナビゲーション、1対1)。
+    ///  読み取りは Includeで行う。
+    /// </summary>
+    public ProductStockEntity? Stock { get; set; }
 }

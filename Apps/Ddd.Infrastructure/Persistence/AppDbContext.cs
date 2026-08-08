@@ -79,17 +79,15 @@ public class AppDbContext : DbContext
         // ナビゲーションプロパティを持たないため、型引数と HasForeignKey で関係を明示する。
         // カテゴリは参照(マスタ)のため、削除は制限(Restrict)する。
         modelBuilder.Entity<ProductEntity>()
-            .HasOne<ProductCategoryEntity>()
-            .WithMany()
+            .HasOne(p => p.Category).WithMany()
             .HasForeignKey(p => p.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // --- 外部キー: product_stock.product_id → product.id ---
         // 在庫は Product 集約の一部のため、商品削除時は在庫も削除(Cascade)する。
-        modelBuilder.Entity<ProductStockEntity>()
-            .HasOne<ProductEntity>()
-            .WithMany()
-            .HasForeignKey(s => s.ProductId)
+        modelBuilder.Entity<ProductEntity>()
+            .HasOne(p => p.Stock).WithOne()
+            .HasForeignKey<ProductStockEntity>(s => s.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

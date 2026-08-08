@@ -15,7 +15,9 @@ namespace Ddd.Infrastructure.Products;
 /// <remarks>
 /// <para>
 /// Product 集約(商品・カテゴリ・在庫)の永続化を担う。受け皿(EF エンティティ) ↔ 集約 の合成・分解は
-/// ドメインの <see cref="IProductFactory{TProduct,TCategory,TStock}"/>(実装は <c>ProductFactory</c>)に委譲する。
+/// 汎用ファクトリ <see cref="IFactory{TAggregate, TExternal}"/>(実装は <c>ProductFactory</c>)に委譲する。
+/// 読み取りは <c>Include</c> でカテゴリ・在庫を一括ロードし、書き込みは EF Core の
+/// リレーションシップ修復に任せる(在庫は所有ナビゲーションとして商品と同一 <c>SaveChanges</c> で永続化)。
 /// </para>
 /// <para>
 /// ドメイン例外(<see cref="DomainException"/>)はそのまま伝播、キャンセルは伝播、
@@ -25,7 +27,7 @@ namespace Ddd.Infrastructure.Products;
 /// </remarks>
 public sealed class ProductRepository(
     AppDbContext dbContext,
-    IProductFactory<ProductEntity, ProductCategoryEntity, ProductStockEntity> factory) : IProductRepository
+    IFactory<Product, ProductEntity> factory) : IProductRepository
 {
     /// <inheritdoc />
     public async Task CreateAsync(Product product, CancellationToken cancellationToken = default)
@@ -34,10 +36,14 @@ public sealed class ProductRepository(
         {
             throw new DomainException("商品は必須です。");
         }
+        if (product.Category is null)
+        {
+            throw new DomainException("商品にカテゴリが設定されていません。");
+        }
         try
         {
-            // カテゴリUUID → カテゴリの内部PK(int)を解決する
-            var categoryUuid = factory.ExtractCategoryUuid(product);
+            // カテゴリUUID → カテゴリの内部PK(int)を解決する(カテゴリは別集約のマスタ)。
+            var categoryUuid = product.Category.CategoryId.Value;
             var categoryPk = await dbContext.ProductCategories
                 .Where(c => c.CategoryUuid == categoryUuid)
                 .Select(c => (int?)c.Id)
@@ -47,18 +53,13 @@ public sealed class ProductRepository(
                 throw new DomainException("指定された商品カテゴリが存在しません。");
             }
 
-            // 集約 → 受け皿(外部キーは未設定)
-            var productEntity = factory.ToProduct(product);
-            var stockEntity = factory.ToStock(product);
+            // 集約 → 受け皿(在庫は所有ナビゲーションとしてネストされる)。
+            var productEntity = factory.Disassemble(product);
+            productEntity.CategoryId = categoryPk.Value; // 参照する既存カテゴリの外部キーを補完
 
-            // product に category_id を補完して INSERT(採番されたPKを取得)
-            productEntity.CategoryId = categoryPk.Value;
+            // 商品と在庫を同一トランザクションで INSERT。
+            // 在庫の product_id は EF Core のリレーションシップ修復で自動補完される。
             dbContext.Products.Add(productEntity);
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            // stock に product_id を補完して INSERT
-            stockEntity.ProductId = productEntity.Id;
-            dbContext.ProductStocks.Add(stockEntity);
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (DomainException)
@@ -92,11 +93,11 @@ public sealed class ProductRepository(
         }
         try
         {
-            // 集約 → 受け皿(UUIDで対象を特定、変更後の名称・単価・在庫数を保持)
-            var productEntity = factory.ToProduct(product);
-            var stockEntity = factory.ToStock(product);
+            // 集約 → 受け皿(UUIDで対象を特定、変更後の名称・単価・在庫数を保持)。
+            var productEntity = factory.Disassemble(product);
+            var stockEntity = productEntity.Stock!; // Disassemble が在庫の設定を保証する
 
-            // 商品を product_uuid で特定し、名称・単価を UPDATE(カテゴリは変更対象外)
+            // 商品を product_uuid で特定し、名称・単価を UPDATE(カテゴリは変更対象外)。
             var updated = await dbContext.Products
                 .Where(p => p.ProductUuid == productEntity.ProductUuid)
                 .ExecuteUpdateAsync(setters => setters
@@ -105,11 +106,11 @@ public sealed class ProductRepository(
                     cancellationToken);
             if (updated == 0)
             {
-                // 事前に FindById で存在確認済みのため、到達するのは想定外(並行削除など)
+                // 事前に FindById で存在確認済みのため、到達するのは想定外(並行削除など)。
                 throw new InternalException("更新対象の商品が見つかりませんでした。");
             }
 
-            // 在庫を stock_uuid で特定し、在庫数を UPDATE
+            // 在庫を stock_uuid で特定し、在庫数を UPDATE。
             await dbContext.ProductStocks
                 .Where(s => s.StockUuid == stockEntity.StockUuid)
                 .ExecuteUpdateAsync(setters => setters
@@ -178,16 +179,14 @@ public sealed class ProductRepository(
         }
         try
         {
-            // product・product_stock・product_category を結合して1行取得する
-            var row = await (
-                from p in dbContext.Products.AsNoTracking()
-                join s in dbContext.ProductStocks.AsNoTracking() on p.Id equals s.ProductId
-                join c in dbContext.ProductCategories.AsNoTracking() on p.CategoryId equals c.Id
-                where p.ProductUuid == productId.Value
-                select new { Product = p, Stock = s, Category = c })
-                .FirstOrDefaultAsync(cancellationToken);
+            // カテゴリ・在庫を Include して集約ルート1件を取得する。
+            var entity = await dbContext.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .Include(p => p.Stock)
+                .FirstOrDefaultAsync(p => p.ProductUuid == productId.Value, cancellationToken);
 
-            return row is null ? null : factory.Assemble(row.Product, row.Category, row.Stock);
+            return entity is null ? null : factory.Assemble(entity);
         }
         catch (DomainException)
         {
@@ -216,15 +215,13 @@ public sealed class ProductRepository(
         }
         try
         {
-            var row = await (
-                from p in dbContext.Products.AsNoTracking()
-                join s in dbContext.ProductStocks.AsNoTracking() on p.Id equals s.ProductId
-                join c in dbContext.ProductCategories.AsNoTracking() on p.CategoryId equals c.Id
-                where p.Name == productName.Value
-                select new { Product = p, Stock = s, Category = c })
-                .FirstOrDefaultAsync(cancellationToken);
+            var entity = await dbContext.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .Include(p => p.Stock)
+                .FirstOrDefaultAsync(p => p.Name == productName.Value, cancellationToken);
 
-            return row is null ? null : factory.Assemble(row.Product, row.Category, row.Stock);
+            return entity is null ? null : factory.Assemble(entity);
         }
         catch (DomainException)
         {

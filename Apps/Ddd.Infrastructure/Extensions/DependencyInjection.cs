@@ -37,10 +37,8 @@ public static class DependencyInjection
         services.AddScoped<IDomainBiAdapter<ProductEntity, Product>, ProductEntityAdapter>();
         services.AddScoped<IDomainBiAdapter<ProductStockEntity, Stock>, ProductStockEntityAdapter>();
 
-        // 集約の合成/分解を担う Factory。ドメインのポート(閉じたジェネリック)型で登録する。
-        services.AddScoped<IProductFactory<ProductEntity, ProductCategoryEntity, ProductStockEntity>,
-            ProductFactory>();
-
+        // 集約の合成/分解を担う Factory。ドメインの汎用ポート(集約ルート×外部の集約ルート)で登録する。
+        services.AddScoped<IFactory<Product, ProductEntity>, ProductFactory>();
 
         // Repository。ドメインのポート(インターフェイス)型で登録する。
         // ※ IStockRepository は本サンプルでは未実装(在庫は Product 集約経由で永続化)。

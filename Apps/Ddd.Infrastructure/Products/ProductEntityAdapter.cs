@@ -65,6 +65,8 @@ public sealed partial class ProductEntityAdapter : IDomainBiAdapter<ProductEntit
     [MapperIgnoreTarget(nameof(ProductEntity.Id))]
     [MapperIgnoreTarget(nameof(ProductEntity.CategoryId))]
     [MapProperty(nameof(Product.ProductId), nameof(ProductEntity.ProductUuid))]
+    [MapperIgnoreTarget(nameof(ProductEntity.Category))]   
+    [MapperIgnoreTarget(nameof(ProductEntity.Stock))]      
     public partial ProductEntity FromDomain(Product domain);
 
     // ---- Mapperly が利用する VO → プリミティブ の変換子 ----
