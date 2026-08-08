@@ -1,6 +1,6 @@
 using System.Data.Common;
+using Ddd.Domain.Adapters;
 using Ddd.Domain.Exceptions;
-using Ddd.Domain.Mappers;
 using Ddd.Domain.Models.Categories;
 using Ddd.Infrastructure.Entities;
 using Ddd.Infrastructure.Exceptions;
@@ -15,8 +15,8 @@ namespace Ddd.Infrastructure.Categories;
 /// <remarks>
 /// <para>
 /// カテゴリの取得(FindById / FindAll)を担う。Entity → <see cref="Category"/> の変換は
-/// <see cref="IToDomainMapper{TDto,TDomain}"/>(<c>ProductCategoryEntityMapper</c>)に委譲する。
-/// 読み取りのみのため合成用の Assembler は不要。
+/// <see cref="IToDomainAdapter{TDto,TDomain}"/>(<c>ProductCategoryEntityAdapter</c>)に委譲する。
+/// 読み取りのみのため合成用の Factory は不要。
 /// </para>
 /// <para>
 /// ドメイン例外(<see cref="DomainException"/>)はそのまま伝播させ、データベース由来の技術的例外は
@@ -25,7 +25,7 @@ namespace Ddd.Infrastructure.Categories;
 /// </remarks>
 public sealed class CategoryRepository(
     AppDbContext dbContext,
-    IToDomainMapper<ProductCategoryEntity, Category> mapper) : ICategoryRepository
+    IToDomainAdapter<ProductCategoryEntity, Category> adapter) : ICategoryRepository
 {
     /// <inheritdoc />
     public async Task<Category?> FindByIdAsync(CategoryId categoryId, CancellationToken cancellationToken = default)
@@ -36,12 +36,12 @@ public sealed class CategoryRepository(
         }
         try
         {
-            // category_uuid(uuid列)を Guid のまま比較する。読み取りのため追跡は不要。
+            // category_uuid を Guid のまま比較する。読み取りのため追跡は不要。
             var entity = await dbContext.ProductCategories
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.CategoryUuid == categoryId.Value, cancellationToken);
 
-            return entity is null ? null : mapper.ToDomain(entity);
+            return entity is null ? null : adapter.ToDomain(entity);
         }
         catch (DomainException)
         {
@@ -71,7 +71,7 @@ public sealed class CategoryRepository(
                 .OrderBy(c => c.Id)
                 .ToListAsync(cancellationToken);
 
-            return entities.Select(mapper.ToDomain).ToList();
+            return entities.Select(adapter.ToDomain).ToList();
         }
         catch (DomainException)
         {

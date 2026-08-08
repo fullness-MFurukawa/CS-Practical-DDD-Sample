@@ -1,14 +1,15 @@
+using Ddd.Domain.Adapters;
 using Ddd.Domain.Exceptions;
 using Ddd.Domain.Models.Categories;
 using Ddd.Domain.Models.Products;
 using Ddd.Domain.Models.Stocks;
 using Ddd.Infrastructure.Entities;
-using Ddd.Infrastructure.Products;
 
 namespace Ddd.Infrastructure.Tests.Products;
 
 /// <summary>
-/// <see cref="ProductEntityMapper"/>(Entity ⇔ Product)の単体テスト(DB不要)。
+/// <see cref="Ddd.Infrastructure.Products.ProductEntityAdapter"/>(Entity ⇔ Product)の
+/// 単体テスト(DB不要)。テスト対象は DI コンテナから解決する。
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,58 +23,55 @@ namespace Ddd.Infrastructure.Tests.Products;
 /// </remarks>
 [TestClass]
 [TestCategory("Infrastructure.Products")]
-public sealed class ProductEntityMapperTests
+public sealed class ProductEntityAdapterTests : InfrastructureTestBase
 {
-    private readonly ProductEntityMapper _mapper = new();
+    private IDomainBiAdapter<ProductEntity, Product> Adapter
+        => GetRequiredService<IDomainBiAdapter<ProductEntity, Product>>();
 
     private static readonly Guid Uuid = Guid.Parse("33333333-3333-3333-3333-333333333333");
 
     private static ProductEntity Entity(Guid productUuid, string name, int price)
         => new() { ProductUuid = productUuid, Name = name, Price = price };
 
-    // ---- ToDomain: Entity → Product(骨格) ----
-
-    [TestMethod]
-    public void ToDomain_有効なEntityを骨格Productに変換できる_カテゴリと在庫はnull()
+    [TestMethod(DisplayName = "有効なEntityを骨格Productに変換できる_カテゴリと在庫はnull")]
+    public void ToDomain_ConvertsValidEntityToSkeleton()
     {
-        var product = _mapper.ToDomain(Entity(Uuid, "油性ボールペン", 120));
+        var product = Adapter.ToDomain(Entity(Uuid, "油性ボールペン", 120));
 
         Assert.AreEqual(Uuid, product.ProductId.Value);
         Assert.AreEqual("油性ボールペン", product.Name.Value);
         Assert.AreEqual(120, product.Price.Value);
-        // skeleton なのでカテゴリ・在庫は未設定(後段の Assembler が Attach する)
+        // skeleton なのでカテゴリ・在庫は未設定(後段の ProductFactory が Attach する)
         Assert.IsNull(product.Category);
         Assert.IsNull(product.Stock);
     }
 
-    [TestMethod]
-    public void ToDomain_Entityがnullなら例外()
+    [TestMethod(DisplayName = "Entityがnullなら例外")]
+    public void ToDomain_ThrowsWhenEntityIsNull()
     {
-        Assert.ThrowsExactly<DomainException>(() => _mapper.ToDomain(null!));
+        Assert.ThrowsExactly<DomainException>(() => Adapter.ToDomain(null!));
     }
 
-    [TestMethod]
-    public void ToDomain_product_uuidが空なら例外()
+    [TestMethod(DisplayName = "product_uuidが空なら例外")]
+    public void ToDomain_ThrowsWhenUuidIsEmpty()
     {
-        Assert.ThrowsExactly<DomainException>(() => _mapper.ToDomain(Entity(Guid.Empty, "商品", 120)));
+        Assert.ThrowsExactly<DomainException>(() => Adapter.ToDomain(Entity(Guid.Empty, "商品", 120)));
     }
 
-    [TestMethod]
-    public void ToDomain_nameが空白なら例外()
+    [TestMethod(DisplayName = "nameが空白なら例外")]
+    public void ToDomain_ThrowsWhenNameIsBlank()
     {
-        Assert.ThrowsExactly<DomainException>(() => _mapper.ToDomain(Entity(Uuid, "   ", 120)));
+        Assert.ThrowsExactly<DomainException>(() => Adapter.ToDomain(Entity(Uuid, "   ", 120)));
     }
 
-    [TestMethod]
-    public void ToDomain_priceが範囲外なら例外()
+    [TestMethod(DisplayName = "priceが範囲外なら例外")]
+    public void ToDomain_ThrowsWhenPriceOutOfRange()
     {
-        Assert.ThrowsExactly<DomainException>(() => _mapper.ToDomain(Entity(Uuid, "商品", 10)));
+        Assert.ThrowsExactly<DomainException>(() => Adapter.ToDomain(Entity(Uuid, "商品", 10)));
     }
 
-    // ---- FromDomain: Product → Entity(Mapperly 生成) ----
-
-    [TestMethod]
-    public void FromDomain_ProductをEntityに変換できる_categoryIdと主キーは未設定()
+    [TestMethod(DisplayName = "ProductをEntityに変換できる_categoryIdと主キーは未設定")]
+    public void FromDomain_ConvertsProductWithKeysUnset()
     {
         var category = Category.CreateNew(CategoryName.Create("文房具"));
         var product = Product.CreateNew(
@@ -82,7 +80,7 @@ public sealed class ProductEntityMapperTests
             category,
             StockQuantity.Create(80));
 
-        var entity = _mapper.FromDomain(product);
+        var entity = Adapter.FromDomain(product);
 
         Assert.AreEqual(product.ProductId.Value, entity.ProductUuid);
         Assert.AreEqual("油性ボールペン", entity.Name);

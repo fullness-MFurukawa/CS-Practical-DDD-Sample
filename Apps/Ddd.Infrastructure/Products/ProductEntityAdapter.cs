@@ -1,5 +1,5 @@
+using Ddd.Domain.Adapters;
 using Ddd.Domain.Exceptions;
-using Ddd.Domain.Mappers;
 using Ddd.Domain.Models.Products;
 using Ddd.Infrastructure.Entities;
 using Riok.Mapperly.Abstractions;
@@ -8,13 +8,13 @@ namespace Ddd.Infrastructure.Products;
 
 /// <summary>
 /// 永続化エンティティ <see cref="ProductEntity"/> とドメインの集約ルート <see cref="Product"/> を
-/// 相互変換する腐敗防止層(ACL)の Mapper。
+/// 相互変換する腐敗防止層(ACL)のアダプタ。
 /// </summary>
 /// <remarks>
 /// <para>
 /// <b>ToDomain(Entity → ドメイン)</b>: 商品テーブル単体の行から、カテゴリ・在庫を伴わない
-/// 「骨格」の <see cref="Product"/> を復元する(<c>RestoreSkeleton</c>)。カテゴリ・在庫は別 Mapper で
-/// 変換し、<c>ProductAssembler</c> で合成する。VO のファクトリ＋検証が必要なため手書きで実装する。
+/// 「骨格」の <see cref="Product"/> を復元する(<c>RestoreSkeleton</c>)。カテゴリ・在庫は別アダプタで
+/// 変換し、<c>ProductFactory</c> で合成する。VO のファクトリ＋検証が必要なため手書きで実装する。
 /// </para>
 /// <para>
 /// <b>FromDomain(ドメイン → Entity)</b>: <c>product_uuid</c> / <c>name</c> / <c>price</c> のみを設定する。
@@ -23,7 +23,7 @@ namespace Ddd.Infrastructure.Products;
 /// </para>
 /// </remarks>
 [Mapper]
-public sealed partial class ProductEntityMapper : IDomainBiMapper<ProductEntity, Product>
+public sealed partial class ProductEntityAdapter : IDomainBiAdapter<ProductEntity, Product>
 {
     /// <summary>
     /// <see cref="ProductEntity"/> を検証し、カテゴリ・在庫を伴わない骨格の <see cref="Product"/> を復元する。
@@ -46,7 +46,7 @@ public sealed partial class ProductEntityMapper : IDomainBiMapper<ProductEntity,
             throw new DomainException("商品名が未設定です。");
         }
 
-        // カテゴリ・在庫は別 Mapper で変換し、後段(Assembler)で合成する。
+        // カテゴリ・在庫は別アダプタで変換し、後段(ProductFactory)で合成する。
         // 単価(price)は int のため null チェックは不要。値の妥当性は ProductPrice.Create が検証する。
         return Product.RestoreSkeleton(
             ProductId.From(input.ProductUuid),
@@ -69,7 +69,9 @@ public sealed partial class ProductEntityMapper : IDomainBiMapper<ProductEntity,
 
     // ---- Mapperly が利用する VO → プリミティブ の変換子 ----
 
-    /// <summary>商品識別子(VO)から uuid 列用の <see cref="Guid"/> を取り出す。</summary>
+    /// <summary>
+    /// 商品識別子(VO)から uuid 列用の <see cref="Guid"/> を取り出す。
+    /// </summary>
     private static Guid MapProductId(ProductId id) => id.Value;
 
     /// <summary>商品名(VO)から文字列を取り出す。</summary>

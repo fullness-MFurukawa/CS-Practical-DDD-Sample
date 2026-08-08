@@ -1,5 +1,5 @@
+using Ddd.Domain.Adapters;
 using Ddd.Domain.Exceptions;
-using Ddd.Domain.Mappers;
 using Ddd.Domain.Models.Stocks;
 using Ddd.Infrastructure.Entities;
 using Riok.Mapperly.Abstractions;
@@ -8,7 +8,7 @@ namespace Ddd.Infrastructure.Products;
 
 /// <summary>
 /// 永続化エンティティ <see cref="ProductStockEntity"/> とドメインエンティティ <see cref="Stock"/> を
-/// 相互変換する腐敗防止層(ACL)の Mapper。
+/// 相互変換する腐敗防止層(ACL)のアダプタ。
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,7 +22,7 @@ namespace Ddd.Infrastructure.Products;
 /// </para>
 /// </remarks>
 [Mapper]
-public sealed partial class ProductStockEntityMapper : IDomainBiMapper<ProductStockEntity, Stock>
+public sealed partial class ProductStockEntityAdapter : IDomainBiAdapter<ProductStockEntity, Stock>
 {
     /// <summary>
     /// <see cref="ProductStockEntity"/> を検証し、<see cref="Stock"/> を復元する。

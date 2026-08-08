@@ -1,6 +1,8 @@
 using System.Data.Common;
 using Ddd.Domain.Exceptions;
+using Ddd.Domain.Factories;
 using Ddd.Domain.Models.Products;
+using Ddd.Infrastructure.Entities;
 using Ddd.Infrastructure.Exceptions;
 using Ddd.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +14,8 @@ namespace Ddd.Infrastructure.Products;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Product 集約(商品・カテゴリ・在庫)の永続化を担う。Entity ↔ 集約 の合成・分解は
-/// <see cref="ProductAssembler"/> に委譲する。
+/// Product 集約(商品・カテゴリ・在庫)の永続化を担う。受け皿(EF エンティティ) ↔ 集約 の合成・分解は
+/// ドメインの <see cref="IProductFactory{TProduct,TCategory,TStock}"/>(実装は <c>ProductFactory</c>)に委譲する。
 /// </para>
 /// <para>
 /// ドメイン例外(<see cref="DomainException"/>)はそのまま伝播、キャンセルは伝播、
@@ -23,7 +25,7 @@ namespace Ddd.Infrastructure.Products;
 /// </remarks>
 public sealed class ProductRepository(
     AppDbContext dbContext,
-    ProductAssembler assembler) : IProductRepository
+    IProductFactory<ProductEntity, ProductCategoryEntity, ProductStockEntity> factory) : IProductRepository
 {
     /// <inheritdoc />
     public async Task CreateAsync(Product product, CancellationToken cancellationToken = default)
@@ -35,7 +37,7 @@ public sealed class ProductRepository(
         try
         {
             // カテゴリUUID → カテゴリの内部PK(int)を解決する
-            var categoryUuid = assembler.ExtractCategoryUuid(product);
+            var categoryUuid = factory.ExtractCategoryUuid(product);
             var categoryPk = await dbContext.ProductCategories
                 .Where(c => c.CategoryUuid == categoryUuid)
                 .Select(c => (int?)c.Id)
@@ -45,9 +47,9 @@ public sealed class ProductRepository(
                 throw new DomainException("指定された商品カテゴリが存在しません。");
             }
 
-            // 集約 → Entity(外部キーは未設定)
-            var productEntity = assembler.ToProductEntity(product);
-            var stockEntity = assembler.ToStockEntity(product);
+            // 集約 → 受け皿(外部キーは未設定)
+            var productEntity = factory.ToProduct(product);
+            var stockEntity = factory.ToStock(product);
 
             // product に category_id を補完して INSERT(採番されたPKを取得)
             productEntity.CategoryId = categoryPk.Value;
@@ -90,9 +92,9 @@ public sealed class ProductRepository(
         }
         try
         {
-            // 集約 → Entity(UUIDで対象を特定、変更後の名称・単価・在庫数を保持)
-            var productEntity = assembler.ToProductEntity(product);
-            var stockEntity = assembler.ToStockEntity(product);
+            // 集約 → 受け皿(UUIDで対象を特定、変更後の名称・単価・在庫数を保持)
+            var productEntity = factory.ToProduct(product);
+            var stockEntity = factory.ToStock(product);
 
             // 商品を product_uuid で特定し、名称・単価を UPDATE(カテゴリは変更対象外)
             var updated = await dbContext.Products
@@ -185,7 +187,7 @@ public sealed class ProductRepository(
                 select new { Product = p, Stock = s, Category = c })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return row is null ? null : assembler.Assemble(row.Product, row.Category, row.Stock);
+            return row is null ? null : factory.Assemble(row.Product, row.Category, row.Stock);
         }
         catch (DomainException)
         {
@@ -222,7 +224,7 @@ public sealed class ProductRepository(
                 select new { Product = p, Stock = s, Category = c })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return row is null ? null : assembler.Assemble(row.Product, row.Category, row.Stock);
+            return row is null ? null : factory.Assemble(row.Product, row.Category, row.Stock);
         }
         catch (DomainException)
         {

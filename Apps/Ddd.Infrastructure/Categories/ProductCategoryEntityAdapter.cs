@@ -1,5 +1,5 @@
+using Ddd.Domain.Adapters;
 using Ddd.Domain.Exceptions;
-using Ddd.Domain.Mappers;
 using Ddd.Domain.Models.Categories;
 using Ddd.Infrastructure.Entities;
 
@@ -7,7 +7,7 @@ namespace Ddd.Infrastructure.Categories;
 
 /// <summary>
 /// 永続化エンティティ <see cref="ProductCategoryEntity"/> からドメインエンティティ
-/// <see cref="Category"/> を再構築する腐敗防止層(ACL)の Mapper。
+/// <see cref="Category"/> を再構築する腐敗防止層(ACL)のアダプタ。
 /// </summary>
 /// <remarks>
 /// <para>
@@ -16,7 +16,7 @@ namespace Ddd.Infrastructure.Categories;
 /// ソースジェネレータでは生成できず手書きで実装する(値の妥当性検証を伴う ACL の責務)。
 /// </para>
 /// </remarks>
-public sealed class ProductCategoryEntityMapper : IToDomainMapper<ProductCategoryEntity, Category>
+public sealed class ProductCategoryEntityAdapter : IToDomainAdapter<ProductCategoryEntity, Category>
 {
     /// <summary>
     /// <see cref="ProductCategoryEntity"/> を検証し、<see cref="Category"/> に変換する。
