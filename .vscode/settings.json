@@ -13,5 +13,6 @@
     "**/bin/**": true,
     "**/obj/**": true,
     "**/TestResults": true
-  }
+  },
+  "remote.autoForwardPortsFallback": 0
 }

@@ -15,7 +15,13 @@ public static class OpenApiExtensions
     /// </summary>
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
     {
-        services.AddOpenApi(options => options.AddDocumentTransformer<ApiDocumentTransformer>());
+        services.AddOpenApi(options =>
+        {
+            // ドキュメント全体(Info・タグ説明)を整える。
+            options.AddDocumentTransformer<ApiDocumentTransformer>();
+            // 自前で XML コメントを付けられないフレームワーク型 ProblemDetails に説明を注入する。
+            options.AddSchemaTransformer<ProblemDetailsSchemaTransformer>();
+        });
         return services;
     }
 
@@ -30,7 +36,11 @@ public static class OpenApiExtensions
             .WithTheme(ScalarTheme.BluePlanet));
 
         // ルートを Scalar UI へリダイレクト(Java 版で "/" を Swagger UI に向けていたのと同じ意図)。
-        app.MapGet("/", () => Results.Redirect("/scalar/v1"));
+        // OpenAPI ドキュメント上でも日本語で表示されるよう、タグ・要約・説明を付ける。
+        app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+            .WithTags("ドキュメント")
+            .WithSummary("APIドキュメントへ移動")
+            .WithDescription("ルート(/)にアクセスすると、Scalar の API ドキュメント画面(/scalar/v1)へリダイレクトします。");
 
         return app;
     }
