@@ -1,11 +1,15 @@
+using Ddd.Application.Events;
 using Ddd.Application.Persistence;
 using Ddd.Domain.Adapters;
 using Ddd.Domain.Factories;
 using Ddd.Domain.Models.Categories;
 using Ddd.Domain.Models.Products;
+using Ddd.Domain.Models.Products.Events;
 using Ddd.Domain.Models.Stocks;
 using Ddd.Infrastructure.Categories;
 using Ddd.Infrastructure.Entities;
+using Ddd.Infrastructure.Events;
+using Ddd.Infrastructure.Events.Handlers;
 using Ddd.Infrastructure.Persistence;
 using Ddd.Infrastructure.Products;
 using Microsoft.EntityFrameworkCore;
@@ -43,6 +47,13 @@ public static class DependencyInjection
 
         // トランザクション境界(Unit of Work)。アプリケーション層のポート型で登録する。
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // ドメインイベントのディスパッチャ(自作インプロセス)と、各イベントのハンドラ。
+        // ディスパッチャは実行時のイベント型で IDomainEventHandler<具体型> を DI から解決する。
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IDomainEventHandler<ProductRenamed>, ProductRenamedLoggingHandler>();
+        services.AddScoped<IDomainEventHandler<ProductRepriced>, ProductRepricedLoggingHandler>();
+        services.AddScoped<IDomainEventHandler<StockQuantityChanged>, StockQuantityChangedLoggingHandler>();
 
         // Repository。ドメインのポート(インターフェイス)型で登録する。
         // ※ IStockRepository は本サンプルでは未実装(在庫は Product 集約経由で永続化)。

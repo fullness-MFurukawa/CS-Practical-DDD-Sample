@@ -46,6 +46,7 @@ public static class DependencyInjection
         // ユースケース(Interactor)。ユースケースのポート型で登録する。
         services.AddScoped<ISearchProductByNameUsecase, SearchProductByNameInteractor>();
         services.AddScoped<IRegisterProductUsecase, RegisterProductInteractor>();
+        services.AddScoped<IUpdateProductUsecase, UpdateProductInteractor>();
 
         return services;
     }
