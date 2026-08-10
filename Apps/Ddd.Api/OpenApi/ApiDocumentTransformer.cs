@@ -30,6 +30,7 @@ internal sealed class ApiDocumentTransformer : IOpenApiDocumentTransformer
         {
             new() { Name = "SearchProducts", Description = "商品検索: 商品名で商品を取得します。" },
             new() { Name = "RegisterProducts", Description = "商品登録: カテゴリ参照・存在チェック・新規登録を行います。" },
+            new() { Name = "UpdateProducts", Description = "商品変更: 商品名、単価、在庫数の変更を行います。" },
         };
 
         return Task.CompletedTask;

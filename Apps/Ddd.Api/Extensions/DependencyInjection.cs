@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddApiDocumentation();
         // 商品登録スキーマ → ProductDto のアダプタ(状態を持たないため Singleton)。
         services.AddSingleton<ProductCreateSchemaAdapter>();
+        services.AddSingleton<ProductUpdateSchemaAdapter>();
 
         // --- 下位層(合成ルートとして束ねる) ---
         var connectionString = configuration.GetConnectionString("Postgres")
