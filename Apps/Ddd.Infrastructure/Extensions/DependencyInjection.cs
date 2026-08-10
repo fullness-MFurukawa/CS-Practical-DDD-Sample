@@ -1,3 +1,4 @@
+using Ddd.Application.Persistence;
 using Ddd.Domain.Adapters;
 using Ddd.Domain.Factories;
 using Ddd.Domain.Models.Categories;
@@ -39,6 +40,9 @@ public static class DependencyInjection
 
         // 集約の合成/分解を担う Factory。ドメインの汎用ポート(集約ルート×外部の集約ルート)で登録する。
         services.AddScoped<IFactory<Product, ProductEntity>, ProductFactory>();
+
+        // トランザクション境界(Unit of Work)。アプリケーション層のポート型で登録する。
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Repository。ドメインのポート(インターフェイス)型で登録する。
         // ※ IStockRepository は本サンプルでは未実装(在庫は Product 集約経由で永続化)。
