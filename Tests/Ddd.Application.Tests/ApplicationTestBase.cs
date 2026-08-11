@@ -1,3 +1,4 @@
+using Ddd.Application.Events;
 using Ddd.Application.Extensions;
 using Ddd.Application.Persistence;
 using Ddd.Application.Tests.Fakes;
@@ -58,6 +59,10 @@ public abstract class ApplicationTestBase
         services.AddScoped<FakeCategoryRepository>();
         services.AddScoped<ICategoryRepository>(sp => sp.GetRequiredService<FakeCategoryRepository>());
         services.AddScoped<IUnitOfWork, FakeUnitOfWork>();
+
+        // ドメインイベントのディスパッチャも Fake(記録用)に差し替える。
+        services.AddScoped<FakeDomainEventDispatcher>();
+        services.AddScoped<IDomainEventDispatcher>(sp => sp.GetRequiredService<FakeDomainEventDispatcher>());
 
         return services.BuildServiceProvider(new ServiceProviderOptions
         {
